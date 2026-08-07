@@ -1,0 +1,450 @@
+{
+  "info": {
+    "name": "SISTER - API Collection (ASTQA Final Project)",
+    "description": "Koleksi Postman untuk uji fungsional & dasar load testing (via Newman Runner) endpoint utama SISTER. Jalankan folder 'Auth' terlebih dahulu agar cookie session (sid) tersimpan otomatis di Postman cookie jar, lalu jalankan folder lain.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "sid",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /login - valid credentials (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 302 redirect to /dashboard', function () {",
+                  "  pm.expect(pm.response.code).to.equal(302);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.equal('/dashboard');",
+                  "});",
+                  "const setCookie = pm.response.headers.get('Set-Cookie') || '';",
+                  "const m = setCookie.match(/sid=([^;]+)/);",
+                  "if (m) { pm.collectionVariables.set('sid', m[1]); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "email",
+                  "value": "admin@sekolah.test"
+                },
+                {
+                  "key": "password",
+                  "value": "password123"
+                }
+              ]
+            },
+            "url": "{{base_url}}/login"
+          }
+        },
+        {
+          "name": "POST /login - invalid password (EP: invalid class)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 302 redirect back to /login', function () {",
+                  "  pm.expect(pm.response.code).to.equal(302);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.equal('/login');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "email",
+                  "value": "admin@sekolah.test"
+                },
+                {
+                  "key": "password",
+                  "value": "wrong-password"
+                }
+              ]
+            },
+            "url": "{{base_url}}/login"
+          }
+        },
+        {
+          "name": "POST /login - empty password (BVA: boundary min)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "email",
+                  "value": "admin@sekolah.test"
+                },
+                {
+                  "key": "password",
+                  "value": ""
+                }
+              ]
+            },
+            "url": "{{base_url}}/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard & RBAC",
+      "item": [
+        {
+          "name": "GET /dashboard - authenticated",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', function(){ pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dashboard",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "GET /users - as admin (should be 200)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "GET /students - as admin (RBAC positive case: admin diizinkan)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK - admin diizinkan akses data kesiswaan', function(){ pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Data Kesiswaan",
+      "item": [
+        {
+          "name": "GET /students",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "POST /students/create - valid data (EP: valid class)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "nis",
+                  "value": "2026999"
+                },
+                {
+                  "key": "name",
+                  "value": "Test Postman Siswa"
+                },
+                {
+                  "key": "class_id",
+                  "value": "1"
+                },
+                {
+                  "key": "gender",
+                  "value": "L"
+                },
+                {
+                  "key": "status",
+                  "value": "Aktif"
+                }
+              ]
+            },
+            "url": "{{base_url}}/students/create"
+          }
+        },
+        {
+          "name": "GET /students/export - CSV export",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students/export",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jurnal Mengajar",
+      "item": [
+        {
+          "name": "GET /journal",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/journal",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "POST /journal/create - valid data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "class_id",
+                  "value": "1"
+                },
+                {
+                  "key": "subject_id",
+                  "value": "1"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-07-30"
+                },
+                {
+                  "key": "material",
+                  "value": "Materi via Postman"
+                },
+                {
+                  "key": "method",
+                  "value": "Ceramah"
+                },
+                {
+                  "key": "notes",
+                  "value": "Dibuat via automated test"
+                }
+              ]
+            },
+            "url": "{{base_url}}/journal/create"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BK (Bimbingan Konseling)",
+      "item": [
+        {
+          "name": "GET /bk",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/bk",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "POST /bk/create - valid case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "student_id",
+                  "value": "1"
+                },
+                {
+                  "key": "case_type",
+                  "value": "konseling"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-07-30"
+                },
+                {
+                  "key": "description",
+                  "value": "Kasus via Postman"
+                },
+                {
+                  "key": "status",
+                  "value": "Baru"
+                }
+              ]
+            },
+            "url": "{{base_url}}/bk/create"
+          }
+        },
+        {
+          "name": "POST /bk/violations/create - BVA negative point (defect DEF-02)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "Cookie",
+                "value": "sid={{sid}}"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "student_id",
+                  "value": "1"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-07-30"
+                },
+                {
+                  "key": "description",
+                  "value": "Uji poin negatif"
+                },
+                {
+                  "key": "point",
+                  "value": "-10"
+                }
+              ]
+            },
+            "url": "{{base_url}}/bk/violations/create"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Zz_Logout (jalankan terakhir)",
+      "item": [
+        {
+          "name": "POST /logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/logout"
+          }
+        }
+      ]
+    }
+  ]
+}
